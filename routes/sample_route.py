@@ -3,6 +3,7 @@ import uuid
 from flask import Blueprint, jsonify, request, abort
 from models.label import Label
 from models.sample import Sample
+from models.search import SearchParams
 from models.traffic_sign import TrafficSign
 from services.auth_service import role_required
 from extension import cache
@@ -12,6 +13,7 @@ from services.sample_service import (
     get_all_samples,
     get_sample_by_id,
     add_sample,
+    search_samples_in_db,
     update_sample,
     delete_sample
 )
@@ -258,3 +260,28 @@ excluded_images = ['3.png', '5.png', '6.png', '16.png', '17.png', '334.png']
 
 #     except Exception as e:
 #         abort(500, description=f"An error occurred: {str(e)}")
+
+
+@sample_bp.route('/api/samples/search', methods=['GET'])
+@role_required('admin', 'user')
+def search_samples():
+    keyword = request.args.get('keyword', default=None, type=str)
+    category_id = request.args.get('category_id', default=None, type=int)
+    page = request.args.get('page', default=1, type=int)
+    page_size = request.args.get('page_size', default=10, type=int)
+
+    # Tạo đối tượng SearchParams
+    search_params = SearchParams(keyword=keyword, page=page, page_size=page_size, category_id=category_id)
+    samples, total = search_samples_in_db(search_params)
+
+    response = {
+        'data': [sample.to_dict() for sample in samples],
+        'pagination': {
+            'current_page': search_params.page,
+            'page_size': search_params.page_size,
+            'total_items': total,
+            'total_pages': (total + search_params.page_size - 1) // search_params.page_size
+        }
+    }
+
+    return jsonify(response)

@@ -1,5 +1,6 @@
 from db import get_db_connection
 from models.sample import Sample
+from models.search import SearchParams
 from services.label_service import create_label, get_labels_by_sample_id
 
 def create_sample_table():
@@ -118,3 +119,93 @@ def delete_sample(sample_id):
     connection.commit()
     cursor.close()
     connection.close()
+
+
+
+# def search_samples_in_db(search_params: SearchParams):
+#     connection = get_db_connection()
+#     cursor = connection.cursor(dictionary=True)
+
+#     # Base SQL query
+#     query = """
+#     SELECT SQL_CALC_FOUND_ROWS s.*
+#     FROM tbl_sample s
+#     JOIN tbl_label l ON l.sample_id = s.id
+#     JOIN tbl_traffic_sign ts ON ts.id = l.traffic_sign_id
+#     """
+#     params = []
+
+#     # Add filtering condition if keyword is provided
+#     if search_params.keyword:
+#         query += " WHERE (s.code LIKE %s OR s.name LIKE %s)"
+#         keyword = f"%{search_params.keyword}%"
+#         params.extend([keyword, keyword])
+
+#     # Add filtering condition if category_id is provided
+#     if search_params.category_id:
+#         if search_params.keyword:  # If there is already a keyword filter, add AND
+#             query += " AND ts.category_id = %s"
+#         else:
+#             query += " WHERE ts.category_id = %s"
+#         params.append(search_params.category_id)
+
+#     # Add pagination
+#     query += " LIMIT %s OFFSET %s"
+#     params.extend([search_params.page_size, search_params.offset])
+
+#     cursor.execute(query, params)
+#     rows = cursor.fetchall()
+
+#     # Get total count of items
+#     cursor.execute("SELECT FOUND_ROWS()")
+#     total = cursor.fetchone()['FOUND_ROWS()']
+
+#     cursor.close()
+#     connection.close()
+
+#     # Return the paginated data and total count
+#     return [Sample.from_row(row) for row in rows], total
+
+def search_samples_in_db(search_params: SearchParams):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    # Base SQL query
+    query = """
+    SELECT SQL_CALC_FOUND_ROWS DISTINCT s.*
+    FROM tbl_sample s
+    JOIN tbl_label l ON l.sample_id = s.id
+    JOIN tbl_traffic_sign ts ON ts.id = l.traffic_sign_id
+    """
+    params = []
+
+    # Add filtering condition if keyword is provided
+    if search_params.keyword:
+        query += " WHERE (s.code LIKE %s OR s.name LIKE %s)"
+        keyword = f"%{search_params.keyword}%"
+        params.extend([keyword, keyword])
+
+    # Add filtering condition if category_id is provided
+    if search_params.category_id:
+        if search_params.keyword:  # If there is already a keyword filter, add AND
+            query += " AND ts.category_id = %s"
+        else:
+            query += " WHERE ts.category_id = %s"
+        params.append(search_params.category_id)
+
+    # Add pagination
+    query += " LIMIT %s OFFSET %s"
+    params.extend([search_params.page_size, search_params.offset])
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+
+    # Get total count of items
+    cursor.execute("SELECT FOUND_ROWS()")
+    total = cursor.fetchone()['FOUND_ROWS()']
+
+    cursor.close()
+    connection.close()
+
+    # Return the paginated data and total count
+    return [Sample.from_row(row) for row in rows], total
