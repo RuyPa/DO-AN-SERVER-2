@@ -15,6 +15,7 @@ cloudinary.config(
     )
 from services.auth_service import role_required
 from services.traffic_sign_service import (
+    get_all_categories,
     get_all_signs,
     get_sign_by_id,
     add_sign,
@@ -140,14 +141,37 @@ def delete_sign_route(id):
     return jsonify({'message': 'Traffic sign deleted successfully'})
 
 
+# @api_routes.route('/api/traffic_signs/search', methods=['GET'])
+# @role_required('admin', 'user')
+# def search_traffic_signs():
+#     keyword = request.args.get('keyword', default=None, type=str)
+#     page = request.args.get('page', default=1, type=int)
+#     page_size = request.args.get('page_size', default=10, type=int)
+
+#     search_params = SearchParams(keyword=keyword, page=page, page_size=page_size)
+#     signs, total = search_signs(search_params)
+
+#     response = {
+#         'data': [sign.to_dict() for sign in signs],
+#         'pagination': {
+#             'current_page': search_params.page,
+#             'page_size': search_params.page_size,
+#             'total_items': total,
+#             'total_pages': (total + search_params.page_size - 1) // search_params.page_size
+#         }
+#     }
+
+#     return jsonify(response)
+
 @api_routes.route('/api/traffic_signs/search', methods=['GET'])
 @role_required('admin', 'user')
 def search_traffic_signs():
     keyword = request.args.get('keyword', default=None, type=str)
+    category_id = request.args.get('category_id', default=None, type=int)
     page = request.args.get('page', default=1, type=int)
     page_size = request.args.get('page_size', default=10, type=int)
 
-    search_params = SearchParams(keyword=keyword, page=page, page_size=page_size)
+    search_params = SearchParams(keyword=keyword, page=page, page_size=page_size, category_id=category_id)
     signs, total = search_signs(search_params)
 
     response = {
@@ -161,7 +185,6 @@ def search_traffic_signs():
     }
 
     return jsonify(response)
-
 
 
 
@@ -230,3 +253,9 @@ def add_batch():
             })
 
     return jsonify({'message': 'Batch processing completed', 'added_signs': added_signs}), 201
+
+@api_routes.route('/api/categories', methods=['GET'])
+@role_required('admin', 'user')
+def get_all_cate():
+    categories = get_all_categories()
+    return jsonify([category.to_dict() for category in categories])

@@ -1,4 +1,5 @@
 from db import get_db_connection
+from models.category import Category
 from models.search import SearchParams
 from models.traffic_sign import TrafficSign
 
@@ -63,6 +64,37 @@ def delete_sign(sign_id):
     connection.close()
 
 
+# def search_signs(search_params: SearchParams):
+#     connection = get_db_connection()
+#     cursor = connection.cursor(dictionary=True)
+
+#     # Base SQL query
+#     query = "SELECT SQL_CALC_FOUND_ROWS * FROM tbl_traffic_sign"
+#     params = []
+
+#     # Add filtering condition if keyword is provided
+#     if search_params.keyword:
+#         query += " WHERE name LIKE %s OR description LIKE %s"
+#         keyword = f"%{search_params.keyword}%"
+#         params.extend([keyword, keyword])
+
+#     # Add pagination
+#     query += " LIMIT %s OFFSET %s"
+#     params.extend([search_params.page_size, search_params.offset])
+
+#     cursor.execute(query, params)
+#     rows = cursor.fetchall()
+
+#     # Get total count of items
+#     cursor.execute("SELECT FOUND_ROWS()")
+#     total = cursor.fetchone()['FOUND_ROWS()']
+
+#     cursor.close()
+#     connection.close()
+
+#     # Return the paginated data and total count
+#     return [TrafficSign.from_row(row) for row in rows], total
+
 def search_signs(search_params: SearchParams):
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
@@ -73,9 +105,17 @@ def search_signs(search_params: SearchParams):
 
     # Add filtering condition if keyword is provided
     if search_params.keyword:
-        query += " WHERE name LIKE %s OR description LIKE %s"
+        query += " WHERE (name LIKE %s OR description LIKE %s)"
         keyword = f"%{search_params.keyword}%"
         params.extend([keyword, keyword])
+
+    # Add filtering condition if category_id is provided
+    if search_params.category_id:
+        if search_params.keyword:  # If there is already a keyword filter, add AND
+            query += " AND category_id = %s"
+        else:
+            query += " WHERE category_id = %s"
+        params.append(search_params.category_id)
 
     # Add pagination
     query += " LIMIT %s OFFSET %s"
@@ -94,3 +134,11 @@ def search_signs(search_params: SearchParams):
     # Return the paginated data and total count
     return [TrafficSign.from_row(row) for row in rows], total
 
+def get_all_categories():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM tbl_category')
+    rows = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return [Category.from_row(row) for row in rows]
