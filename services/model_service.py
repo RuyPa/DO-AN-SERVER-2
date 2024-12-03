@@ -58,7 +58,7 @@ def get_all_models():
     for row in rows:
         model = Model.from_row(row)
         # Lấy danh sách ModelSample cho mỗi model
-        model.model_samples = get_model_samples_by_model_id(model.id)
+        # model.model_samples = get_model_samples_by_model_id(model.id)
         models.append(model)
     
     cursor.close()
