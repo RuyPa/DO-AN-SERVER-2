@@ -9,7 +9,7 @@ model_bp = Blueprint('model_bp', __name__)
 
 # API lấy tất cả models
 @model_bp.route('/api/models', methods=['GET'])
-@role_required('admin')
+@role_required('admin','user')
 def get_models():
     models = get_all_models()
     return jsonify([model.to_dict() for model in models]), 200

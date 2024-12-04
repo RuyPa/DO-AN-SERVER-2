@@ -50,7 +50,7 @@ from routes.model_sample_route import model_sample_bp
 from routes.model_route import model_bp
 from routes.auth_route import auth_bp
 from routes.user_route import user_bp
-
+from routes.statistic_route import stat_routes
 
 # Register blueprints
 app.register_blueprint(api_routes)
@@ -58,6 +58,8 @@ app.register_blueprint(sample_bp)
 app.register_blueprint(label_bp)
 app.register_blueprint(model_sample_bp)
 app.register_blueprint(model_bp)
+app.register_blueprint(stat_routes)
+
 
 # Register the auth blueprint
 app.register_blueprint(auth_bp)
