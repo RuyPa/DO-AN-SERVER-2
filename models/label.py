@@ -33,13 +33,15 @@
 from models.traffic_sign import TrafficSign
 
 class Label:
-    def __init__(self, id=None, centerX=0, centerY=0, height=0, width=0, sample_id=None, traffic_sign=None):
+    def __init__(self, id=None, centerX=0, centerY=0, height=0, width=0, sample_id=None, traffic_sign=None,created_by = ''):
         self.id = id
         self.centerX = centerX
         self.centerY = centerY
         self.height = height
         self.width = width
         self.sample_id = sample_id
+        self.created_by = created_by
+
         self.traffic_sign = traffic_sign  # Đối tượng TrafficSign tương ứng với label
 
     @staticmethod
@@ -52,6 +54,8 @@ class Label:
             height=row['height'],
             width=row['width'],
             sample_id=row['sample_id'],
+            created_by= row['created_by'],
+
             traffic_sign=traffic_sign  # Nhận đối tượng TrafficSign
         )
     
@@ -63,6 +67,8 @@ class Label:
             centerY=row['centerY'],
             height=row['height'],
             width=row['width'],
+            created_by = row['created_by'],
+
             traffic_sign=traffic_sign
         )
     
@@ -75,5 +81,7 @@ class Label:
             'height': self.height,
             'width': self.width,
             'sample_id': self.sample_id,
+            'created_by': self.created_by,
+
             'traffic_sign': self.traffic_sign.to_dict() if self.traffic_sign else None  
         }

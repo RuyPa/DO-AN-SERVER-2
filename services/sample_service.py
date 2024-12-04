@@ -1,3 +1,4 @@
+from flask_jwt_extended import get_jwt_identity
 from db import get_db_connection
 from models.sample import Sample
 from models.search import SearchParams
@@ -52,20 +53,20 @@ def get_sample_by_id(sample_id):
 def add_sample(sample: Sample):
     connection = get_db_connection()
     cursor = connection.cursor()
-
+    current_user = get_jwt_identity()  
+    current_user_email = current_user.get('email') 
     try:
-        cursor.execute('INSERT INTO tbl_sample (code, path, name) VALUES (%s, %s, %s)',
-                       (sample.code, sample.path, sample.name))
+        cursor.execute('INSERT INTO tbl_sample (code, path, name, created_by, created_date) VALUES (%s, %s, %s, %s, NOW())',
+                    (sample.code, sample.path, sample.name, sample.created_by))
+
         sample_id = cursor.lastrowid
-        print(f"Sample created with ID: {sample_id}") 
-        
         if sample.labels:
             for label in sample.labels:
                 label.sample_id = sample_id
                 cursor.execute('''
-                    INSERT INTO tbl_label (centerX, centerY, height, width, sample_id, traffic_sign_id)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                ''', (label.centerX, label.centerY, label.height, label.width, label.sample_id, label.traffic_sign.id))        
+                    INSERT INTO tbl_label (centerX, centerY, height, width, sample_id, traffic_sign_id, created_by, created_date)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                ''', (label.centerX, label.centerY, label.height, label.width, label.sample_id, label.traffic_sign.id, current_user_email))        
                 # create_label(label)
         connection.commit()
     
@@ -120,6 +121,14 @@ def delete_sample(sample_id):
     cursor.close()
     connection.close()
 
+
+def delete_sample(sample_id):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute('DELETE FROM tbl_sample WHERE id = %s', (sample_id,))
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 
 # def search_samples_in_db(search_params: SearchParams):

@@ -5,10 +5,12 @@ from services.traffic_sign_service import get_sign_by_id
 def create_label(label: Label):
     connection = get_db_connection()
     cursor = connection.cursor()
+    print('kl')
+
     cursor.execute('''
-        INSERT INTO tbl_label (centerX, centerY, height, width, sample_id, traffic_sign_id)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    ''', (label.centerX, label.centerY, label.height, label.width, label.sample_id, label.traffic_sign.id))
+        INSERT INTO tbl_label (centerX, centerY, height, width, sample_id, traffic_sign_id, created_by)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ''', (label.centerX, label.centerY, label.height, label.width, label.sample_id, label.traffic_sign.id, label.created_by))
     connection.commit()
     cursor.close()
     connection.close()
