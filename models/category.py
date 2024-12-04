@@ -38,3 +38,10 @@ class Category:
             'created_date': self.created_date,
             'created_by': self.created_by
         }
+
+
+    @classmethod
+    def from_req(cls, category_id):
+        return cls(
+            id= category_id
+        )

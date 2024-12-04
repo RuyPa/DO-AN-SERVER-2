@@ -1,6 +1,9 @@
 import os
+import re
 import unicodedata
 from flask import Blueprint, jsonify, request, abort
+from flask_jwt_extended import get_jwt_identity
+from models.category import Category
 from models.search import SearchParams
 from models.traffic_sign import TrafficSign
 from cloudinary.uploader import upload
@@ -17,6 +20,8 @@ from services.auth_service import role_required
 from services.traffic_sign_service import (
     get_all_categories,
     get_all_signs,
+    get_owner_by_id,
+    get_path_by_id,
     get_sign_by_id,
     add_sign,
     search_signs,
@@ -66,16 +71,21 @@ def get_sign(id):
 @api_routes.route('/api/traffic_signs', methods=['POST'])
 @role_required('admin')
 def create_sign():
+
+    current_user = get_jwt_identity()  
+    current_user_email = current_user.get('email') 
+
     data = request.form  # Dữ liệu không phải JSON, mà là form-data
     
     # Lấy thông tin từ form-data
     name = data.get('name')
-    code = data.get('code')  
+    code = data.get('code')
+    category_id = data.get('category_id')  
     description = data.get('description', '')  
     
     # Kiểm tra thông tin bắt buộc
-    if not name or not code:
-        abort(400, description="Name and Code are required")
+    if not name or not code or not category_id:
+        abort(400, description="Name and Code and Category Id are required")
     
     # Xử lý file ảnh
     file = request.files.get('image')  # Nhận file từ multipart/form-data
@@ -91,7 +101,7 @@ def create_sign():
         abort(500, description=f"Image upload failed: {str(e)}")
     
     # Tạo object TrafficSign và thêm vào database
-    sign = TrafficSign(name=name, code=code, description=description, path=path)
+    sign = TrafficSign(name=name, code=code, description=description, path=path, created_by= current_user_email, category=Category.from_req(category_id))
     add_sign(sign)
     
     return jsonify({'message': 'Traffic sign created successfully'}), 201
@@ -111,25 +121,24 @@ def update_sign_route(id):
     name = data.get('name', sign.name)  # Nếu không có, giữ nguyên giá trị cũ
     code = data.get('code', sign.code)  # Nếu không có, giữ nguyên giá trị cũ
     description = data.get('description', sign.description)  # Nếu không có, giữ nguyên giá trị cũ
+    category_id = data.get('category_id', sign.category.id)
     path = sign.path  # Giữ nguyên đường dẫn cũ
 
     # Kiểm tra thông tin bắt buộc
     if not name or not code:
         abort(400, description="Name and Code are required")
     
-    file = request.files.get('image')  # Nhận file từ multipart/form-data
+    file = request.files.get('image') 
     
-    # Nếu có file ảnh mới, upload và lấy URL mới
     if file:
         try:
             upload_result = cloudinary.uploader.upload(file)
-            path = upload_result.get('secure_url')  # Nhận URL an toàn của ảnh mới đã upload
+            path = upload_result.get('secure_url')  
             
         except Exception as e:
             abort(500, description=f"Image upload failed: {str(e)}")
 
-    # Cập nhật TrafficSign trong database
-    update_sign(id, name, code, description, path)  # Cập nhật các thông tin cần thiết
+    update_sign(TrafficSign(id, name, code, description, path, category=Category.from_req(category_id)))  
     
     return jsonify({'message': 'Traffic sign updated successfully'})
 
@@ -137,9 +146,31 @@ def update_sign_route(id):
 @api_routes.route('/api/traffic_signs/<int:id>', methods=['DELETE'])
 @role_required('admin')
 def delete_sign_route(id):
+
+    current_user = get_jwt_identity()  
+    current_user_email = current_user.get('email')
+    current_role = current_user.get('role')
+
+
+    owner_email = get_owner_by_id(id)
+
+    if current_role != 'admin' and current_user_email != owner_email:
+        return jsonify({'message': 'Forbidden: You are not authorized to delete this sign.'}), 403
+    print(extract_public_id(get_path_by_id(id)))
+    cloudinary.uploader.destroy(extract_public_id(get_path_by_id(id)), invalidate=True)
+
     delete_sign(id)
     return jsonify({'message': 'Traffic sign deleted successfully'})
 
+def extract_public_id(secure_url):
+    pattern = r'https:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/([^\/]+)'
+    
+    match = re.search(pattern, secure_url)
+    
+    if match:
+        return match.group(1) 
+    else:
+        return None  
 
 # @api_routes.route('/api/traffic_signs/search', methods=['GET'])
 # @role_required('admin', 'user')

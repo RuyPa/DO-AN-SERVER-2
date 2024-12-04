@@ -75,5 +75,5 @@ class Label:
             'height': self.height,
             'width': self.width,
             'sample_id': self.sample_id,
-            'traffic_sign': self.traffic_sign.to_dict() if self.traffic_sign else None  # Chuyển đối tượng TrafficSign thành từ điển
+            'traffic_sign': self.traffic_sign.to_dict() if self.traffic_sign else None  
         }

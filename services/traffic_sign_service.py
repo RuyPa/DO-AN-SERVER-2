@@ -33,24 +33,26 @@ def get_sign_by_id(sign_id):
     cursor = connection.cursor(dictionary=True)
     cursor.execute('SELECT * FROM tbl_traffic_sign WHERE id = %s', (sign_id,))
     row = cursor.fetchone()
+    category = get_category_by_id(row['category_id'])
+
     cursor.close()
     connection.close()
-    return TrafficSign.from_row(row) if row else None
+    return TrafficSign.from_row(row, category=category) if row else None
 
 def add_sign(sign: TrafficSign):
     connection = get_db_connection()
     cursor = connection.cursor()
-    cursor.execute('INSERT INTO tbl_traffic_sign (name, code, description, path) VALUES (%s, %s, %s, %s)',
-                   (sign.name, sign.code, sign.description, sign.path))
+    cursor.execute('INSERT INTO tbl_traffic_sign (name, code, description, path, created_by, created_date, category_id) VALUES (%s, %s, %s, %s, %s, NOW(), %s)',
+                   (sign.name, sign.code, sign.description, sign.path, sign.create_by, sign.category.id))
     connection.commit()
     cursor.close()
     connection.close()
 
-def update_sign(sign_id, name, code, description, path):
+def update_sign(sign: TrafficSign):
     connection = get_db_connection()
     cursor = connection.cursor()
-    cursor.execute('UPDATE tbl_traffic_sign SET name = %s, code = %s, description = %s, path = %s WHERE id = %s',
-                   (name, code, description, path, sign_id))
+    cursor.execute('UPDATE tbl_traffic_sign SET name = %s, code = %s, description = %s, path = %s, category_id = %s WHERE id = %s',
+                   (sign.name, sign.code, sign.description, sign.path, sign.category.id, sign.id))
     connection.commit()
     cursor.close()
     connection.close()
@@ -129,10 +131,24 @@ def search_signs(search_params: SearchParams):
     total = cursor.fetchone()['FOUND_ROWS()']
 
     cursor.close()
+
+    # Thêm thông tin category vào từng traffic sign
+    result = []
+    for row in rows:
+        # Lấy category tương ứng với category_id của mỗi traffic sign
+        category = get_category_by_id(row['category_id'])
+        
+        # Tạo đối tượng TrafficSign với category
+        traffic_sign = TrafficSign.from_row(row, category=category)
+        
+        # Thêm vào danh sách kết quả
+        result.append(traffic_sign)
+
+    # Đóng kết nối sau khi hoàn thành
     connection.close()
 
-    # Return the paginated data and total count
-    return [TrafficSign.from_row(row) for row in rows], total
+    # Trả về danh sách traffic signs đã có category và tổng số lượng
+    return result, total
 
 def get_all_categories():
     connection = get_db_connection()
@@ -142,3 +158,43 @@ def get_all_categories():
     cursor.close()
     connection.close()
     return [Category.from_row(row) for row in rows]
+
+
+def get_category_by_id(category_id):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM tbl_category WHERE id = %s', (category_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    if row:
+        return Category.from_row(row)
+    else:
+        return None
+
+
+def get_owner_by_id(sign_id):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT tf.created_by FROM tbl_traffic_sign tf WHERE tf.id = %s', (sign_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    
+    if row:
+        return row['created_by']
+    else:
+        return None  
+
+def get_path_by_id(sign_id):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute('SELECT tf.path FROM tbl_traffic_sign tf WHERE tf.id = %s', (sign_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    connection.close()
+    
+    if row:
+        return row['path']
+    else:
+        return None  
