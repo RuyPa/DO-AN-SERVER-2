@@ -11,9 +11,9 @@ from extension import cache
 from const import CACHE_TTL
 import cloudinary
 cloudinary.config( 
-        cloud_name = "dkf74ju3o", 
-        api_key = "639453249624293", 
-        api_secret = "2GY34a7PT11RkkaTwEsKP9eYkwI",
+        cloud_name = "drtibt2pc", 
+        api_key = "668131912396815", 
+        api_secret = "5PC0jjLExqHglNZCTr0XMM3TkUc",
         secure = True
     )
 from services.auth_service import role_required
@@ -40,7 +40,6 @@ def get_signs():
     return jsonify([sign.to_dict() for sign in signs])
 
 @api_routes.route('/api/traffic_signs/<int:id>', methods=['GET'])
-@cache.cached(timeout= CACHE_TTL)  # Cache API trong 60 giây
 @role_required('admin', 'user')
 def get_sign(id):
     sign = get_sign_by_id(id)

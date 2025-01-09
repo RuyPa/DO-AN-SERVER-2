@@ -4,6 +4,58 @@ from models.sample import Sample
 from models.search import SearchParams
 from services.label_service import create_label, get_labels_by_sample_id
 
+def update_sample_path(sample: Sample):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+
+    try:
+        # Chỉ cập nhật trường path cho sample
+        cursor.execute('''
+            UPDATE tbl_sample
+            SET path = %s
+            WHERE name = %s
+        ''', (sample.path, sample.name))
+
+        connection.commit()
+
+    except Exception as e:
+        connection.rollback()
+        print(f"Error while updating sample path: {str(e)}")
+    
+    finally:
+        cursor.close()
+        connection.close()
+
+def get_sample_by_name(name: str):
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)  # Dùng dictionary=True để lấy kết quả dưới dạng từ điển
+
+    try:
+        # Thực thi câu lệnh SQL để tìm Sample theo tên ảnh
+        cursor.execute('''
+            SELECT * FROM tbl_sample
+            WHERE name = %s
+        ''', (name,))
+
+        # Lấy kết quả trả về
+        row = cursor.fetchone()  # Dùng fetchone để lấy một kết quả duy nhất
+
+        if row:
+            # Chuyển đổi kết quả thành đối tượng Sample
+            sample = Sample.from_row(row)
+            return sample
+        else:
+            return None
+
+    except Exception as e:
+        print(f"Error while fetching sample: {str(e)}")
+        return None
+    
+    finally:
+        cursor.close()
+        connection.close()
+
+
 def create_sample_table():
     connection = get_db_connection()
     cursor = connection.cursor()

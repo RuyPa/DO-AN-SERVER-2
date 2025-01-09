@@ -68,9 +68,9 @@ def set_model_active(id):
 
 
 @model_bp.route('/api/models/<int:id>/download', methods=['GET'])
-@cache.cached(timeout= CACHE_TTL)  # Cache API trong 60 giây
-@role_required('admin')
 def download_model(id):
-    model_path = "C:\\Users\\ruy_pa_\\Dropbox\\do_an_2024\\YOLO\\" + get_model_path_by_id(id) +"\weights\\best.pt"
-    
+    # model_path = "C:\\Users\\ruy_pa_\\Dropbox\\do_an_2024\\YOLO\\" + get_model_path_by_id(id) +"\weights\\best.pt"
+    # model_path = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\appclone\\" + get_model_path_by_id(id) +"\weights\\best.pt"
+    model_path = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\appclone\\model\\model.tflite"
+    print(model_path)
     return download_model_file(model_path)

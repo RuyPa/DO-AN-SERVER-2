@@ -14,9 +14,11 @@ from services.sample_service import (
     get_all_samples,
     get_sample_by_id,
     add_sample,
+    get_sample_by_name,
     search_samples_in_db,
     update_sample,
-    delete_sample
+    delete_sample,
+    update_sample_path
 )
 
 sample_bp = Blueprint('sample_bp', __name__)
@@ -311,83 +313,129 @@ def delete_sample_route(id):
 from cloudinary.uploader import upload
 import cloudinary
 cloudinary.config( 
-        cloud_name = "dkf74ju3o", 
-        api_key = "639453249624293", 
-        api_secret = "2GY34a7PT11RkkaTwEsKP9eYkwI",
+        cloud_name = "drtibt2pc", 
+        api_key = "668131912396815", 
+        api_secret = "5PC0jjLExqHglNZCTr0XMM3TkUc",
         secure = True
     )
 
 # List of images to exclude from upload
-excluded_images = ['3.png', '5.png', '6.png', '16.png', '17.png', '334.png']
+# excluded_images = ['3.png', '5.png', '6.png', '16.png', '17.png', '334.png']
 
-# @sample_bp.route('/api/samples/temp', methods=['GET'])
-# def create_sample_temp():
-#     # Lấy đường dẫn đến thư mục ảnh và thư mục nhãn
-#     image_folder = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\vn1\\valid\\images"
-#     label_folder = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\vn1\\valid\\labels"
-    
-#     if not image_folder or not label_folder:
-#         abort(400, description="Both image folder and label folder are required")
-    
-#     # Kiểm tra nếu thư mục ảnh và nhãn tồn tại
-#     if not os.path.exists(image_folder) or not os.path.exists(label_folder):
-#         abort(400, description="Image or label folder does not exist")
+@sample_bp.route('/api/samples/temp', methods=['GET'])
+def create_sample_temp():
+    image_folder = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\vn1\\valid\\images"
 
-#     try:
-#         # Lấy danh sách các tệp ảnh trong thư mục ảnh
-#         image_files = [f for f in os.listdir(image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
+    # Kiểm tra xem thư mục ảnh có tồn tại không
+    if not os.path.exists(image_folder):
+        abort(400, description="Image folder does not exist")
+
+    try:
+        # Lấy danh sách các tệp ảnh trong thư mục ảnh
+        image_files = [f for f in os.listdir(image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
+
+        # Chọn 300 ảnh đầu tiên, bỏ qua ảnh trong danh sách ngoại trừ
+        image_files = [f for f in image_files ][:300]
+        print(image_files)
+        # Lặp qua từng ảnh trong danh sách đã chọn
+        for image_file in image_files:
+            image_path = os.path.join(image_folder, image_file)
+
+            # Upload ảnh lên Cloudinary
+            try:
+                upload_result = upload(image_path)
+                image_url = upload_result.get('secure_url')  # Lấy URL an toàn của ảnh đã upload
+
+                if not image_url:
+                    print(f"Warning: Cloudinary upload failed for image {image_file}")
+                    continue  # Bỏ qua nếu không có URL trả về từ Cloudinary
+
+            except Exception as upload_error:
+                print(f"Error uploading image {image_file}: {str(upload_error)}")
+                continue  # Bỏ qua nếu có lỗi trong quá trình upload
+
+            # Tạo đối tượng Sample (hoặc lấy từ cơ sở dữ liệu)
+            sample = get_sample_by_name(image_file)
+
+            if sample:
+                # Cập nhật lại path của Sample
+                sample.path = image_url
+                update_sample_path(sample)
+            else:
+                print(f"Warning: No sample found for image {image_file}")
+
+        return jsonify({'message': 'Paths updated successfully'}), 200
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        abort(500, description=f"An error occurred: {str(e)}")
+
+    # # Lấy đường dẫn đến thư mục ảnh và thư mục nhãn
+    # image_folder = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\vn1\\valid\\images"
+    # label_folder = "C:\\Users\\ruy_pa_\\OneDrive - ptit.edu.vn\\do_an_2024\\YOLO\\vn1\\valid\\labels"
+    
+    # if not image_folder or not label_folder:
+    #     abort(400, description="Both image folder and label folder are required")
+    
+    # # Kiểm tra nếu thư mục ảnh và nhãn tồn tại
+    # if not os.path.exists(image_folder) or not os.path.exists(label_folder):
+    #     abort(400, description="Image or label folder does not exist")
+
+    # try:
+    #     # Lấy danh sách các tệp ảnh trong thư mục ảnh
+    #     image_files = [f for f in os.listdir(image_folder) if f.endswith(('jpg', 'png', 'jpeg'))]
         
-#         # Lặp qua từng ảnh trong thư mục ảnh
-#         for image_file in image_files:
-#             # Skip the excluded images
-#             if image_file in excluded_images:
-#                 continue  # Bỏ qua ảnh nếu tên của ảnh có trong danh sách ngoại trừ
+    #     # Lặp qua từng ảnh trong thư mục ảnh
+    #     for image_file in image_files:
+    #         # Skip the excluded images
+    #         if image_file in excluded_images:
+    #             continue  # Bỏ qua ảnh nếu tên của ảnh có trong danh sách ngoại trừ
             
-#             image_path = os.path.join(image_folder, image_file)
-#             label_file = os.path.splitext(image_file)[0] + '.txt'  # Giả sử tệp nhãn có cùng tên với ảnh nhưng định dạng .txt
-#             label_path = os.path.join(label_folder, label_file)
+    #         image_path = os.path.join(image_folder, image_file)
+    #         label_file = os.path.splitext(image_file)[0] + '.txt'  # Giả sử tệp nhãn có cùng tên với ảnh nhưng định dạng .txt
+    #         label_path = os.path.join(label_folder, label_file)
 
-#             # Kiểm tra nếu tệp nhãn có tồn tại
-#             if not os.path.exists(label_path):
-#                 continue  # Bỏ qua nếu không có tệp nhãn tương ứng
+    #         # Kiểm tra nếu tệp nhãn có tồn tại
+    #         if not os.path.exists(label_path):
+    #             continue  # Bỏ qua nếu không có tệp nhãn tương ứng
             
-#             # Upload ảnh lên Cloudinary
-#             upload_result = cloudinary.uploader.upload(image_path)
-#             image_url = upload_result.get('secure_url')  # Lấy URL an toàn của ảnh đã upload
+    #         # Upload ảnh lên Cloudinary
+    #         upload_result = cloudinary.uploader.upload(image_path)
+    #         image_url = upload_result.get('secure_url')  # Lấy URL an toàn của ảnh đã upload
 
-#             # Đọc tệp nhãn
-#             with open(label_path, 'r') as label_file:
-#                 labels_data = label_file.readlines()  # Đọc từng dòng trong tệp nhãn
+    #         # Đọc tệp nhãn
+    #         with open(label_path, 'r') as label_file:
+    #             labels_data = label_file.readlines()  # Đọc từng dòng trong tệp nhãn
 
-#             # Tạo đối tượng Sample
-#             sample = Sample(code=str(uuid.uuid4()), path=image_url, name=image_file)
+    #         # Tạo đối tượng Sample
+    #         sample = Sample(code=str(uuid.uuid4()), path=image_url, name=image_file)
 
-#             # Xử lý các nhãn
-#             for label_data in labels_data:
-#                 # Mỗi dòng trong tệp nhãn có thể có thông tin nhãn dạng: traffic_sign_id centerX centerY height width
-#                 label_info = label_data.strip().split()  # Giả sử các trường cách nhau bằng khoảng trắng
+    #         # Xử lý các nhãn
+    #         for label_data in labels_data:
+    #             # Mỗi dòng trong tệp nhãn có thể có thông tin nhãn dạng: traffic_sign_id centerX centerY height width
+    #             label_info = label_data.strip().split()  # Giả sử các trường cách nhau bằng khoảng trắng
 
-#                 if len(label_info) < 5:
-#                     continue  # Bỏ qua nếu dữ liệu không đầy đủ
+    #             if len(label_info) < 5:
+    #                 continue  # Bỏ qua nếu dữ liệu không đầy đủ
 
-#                 # Lấy thông tin nhãn từ tệp
-#                 traffic_sign_id = int(label_info[0])
-#                 centerX, centerY, height, width = map(float, label_info[1:])
+    #             # Lấy thông tin nhãn từ tệp
+    #             traffic_sign_id = int(label_info[0])
+    #             centerX, centerY, height, width = map(float, label_info[1:])
 
-#                 # Tạo đối tượng TrafficSign từ traffic_sign_id
-#                 traffic_sign = TrafficSign.from_req(traffic_sign_id)  # Tạo đối tượng TrafficSign từ ID
+    #             # Tạo đối tượng TrafficSign từ traffic_sign_id
+    #             traffic_sign = TrafficSign.from_req(traffic_sign_id)  # Tạo đối tượng TrafficSign từ ID
                 
-#                 # Tạo đối tượng Label và thêm vào Sample
-#                 label = Label(centerX=centerX, centerY=centerY, height=height, width=width, traffic_sign=traffic_sign)
-#                 sample.labels.append(label)
+    #             # Tạo đối tượng Label và thêm vào Sample
+    #             label = Label(centerX=centerX, centerY=centerY, height=height, width=width, traffic_sign=traffic_sign)
+    #             sample.labels.append(label)
             
-#             # Lưu sample vào cơ sở dữ liệu
-#             add_sample(sample)
+    #         # Lưu sample vào cơ sở dữ liệu
+    #         add_sample(sample)
 
-#         return jsonify({'message': 'Samples created successfully'}), 201
+    #     return jsonify({'message': 'Samples created successfully'}), 201
 
-#     except Exception as e:
-#         abort(500, description=f"An error occurred: {str(e)}")
+    # except Exception as e:
+    #     abort(500, description=f"An error occurred: {str(e)}")
 
 
 @sample_bp.route('/api/samples/search', methods=['GET'])
